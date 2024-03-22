@@ -1,0 +1,6 @@
+﻿saves
+.idea
+__pycache__
+log.txt
+requirements.txt
+fast_pic_bed.db
