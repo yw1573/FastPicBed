@@ -2,7 +2,6 @@ import logging
 import os
 import shutil
 import sqlite3
-import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -24,7 +23,6 @@ class LoginLog(logging.Logger):
     def __init__(self, name, level=logging.DEBUG, file=log_file_path):
         super().__init__(name, level)
         fmt = "%(asctime)s| %(levelname)-8s | %(name)-12s | %(filename)s [%(lineno)04d] :%(message)s"
-        formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
         formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
         file_handle = logging.FileHandler(file, encoding="utf-8")
         file_handle.setFormatter(formatter)
@@ -75,9 +73,7 @@ def allowed_file(filename):
 
 @app.api_route("/", methods=["GET"])
 async def root(request: Request):
-    logger.debug(request.method)
     pic_num = LiteDB(db_file).counts("pics")
-    logger.debug(pic_num)
     return templates.TemplateResponse("index.html", {
         "request": request,
         "pic_num": pic_num,
@@ -117,7 +113,7 @@ async def root(request: Request, file: UploadFile):
 
             return html_data
         except Exception as e:
-            logger.debug(e.args)
+            logger.error(e.args)
     else:
         return templates.TemplateResponse("index.html", {
             "request": request,
@@ -128,9 +124,7 @@ async def root(request: Request, file: UploadFile):
 
 @app.api_route("/uploads/{filename}", methods=["GET"])
 async def uploaded_file(filename):
-    logger.debug(filename)
     file_path = os.path.join(os.path.join(os.getcwd(), "saves"), filename)
-    logger.debug(file_path)
     if os.path.exists(file_path):
         return FileResponse(path=file_path)
     else:
@@ -225,14 +219,13 @@ class Tray:
 
 
 def create_tray():
-    logger.debug("create tray")
     my_tray = Tray()
     my_tray.run()
 
 
 def create_server():
     my_config = uvicorn.Config(app=f'{Path(__file__).stem}:app', host=service_host_ip, port=int(service_host_port),
-                               access_log=True,
+                               access_log=False,
                                workers=16)
     my_server = uvicorn.Server(my_config)
     my_server.run()
