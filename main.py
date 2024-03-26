@@ -19,20 +19,20 @@ from pystray import MenuItem
 log_file_path = os.path.join(os.getcwd(), "log.txt")
 
 
-class LoginLog(logging.Logger):
+class MyLog(logging.Logger):
     def __init__(self, name, level=logging.DEBUG, file=log_file_path):
         super().__init__(name, level)
         fmt = "%(asctime)s| %(levelname)-8s | %(name)-12s | %(filename)s [%(lineno)04d] :%(message)s"
         formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
-        file_handle = logging.FileHandler(file, encoding="utf-8")
-        file_handle.setFormatter(formatter)
-        self.addHandler(file_handle)
+        # file_handle = logging.FileHandler(file, encoding="utf-8")
+        # file_handle.setFormatter(formatter)
+        # self.addHandler(file_handle)
         console_handle = logging.StreamHandler()
         console_handle.setFormatter(formatter)
         self.addHandler(console_handle)
 
 
-logger = LoginLog("FastPicBed")
+logger = MyLog("FastPicBed")
 
 # 打包
 # pyinstaller.exe -F main.py -p log_config.py --noconsole
