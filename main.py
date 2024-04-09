@@ -16,53 +16,53 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pystray import MenuItem
 
-log_file_path = os.path.join(os.getcwd(), "log.txt")
+log_file_path = os.path.join(os.getcwd(), 'log.txt')
 
 
 class MyLog(logging.Logger):
     def __init__(self, name, level=logging.DEBUG, file=log_file_path):
         super().__init__(name, level)
-        fmt = "%(asctime)s| %(levelname)-8s | %(name)-12s | %(filename)s [%(lineno)04d] :%(message)s"
-        formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
-        # file_handle = logging.FileHandler(file, encoding="utf-8")
-        # file_handle.setFormatter(formatter)
-        # self.addHandler(file_handle)
+        fmt = '%(asctime)s| %(levelname)-8s | %(name)-12s | %(filename)s [%(lineno)04d] :%(message)s'
+        formatter = logging.Formatter(fmt, datefmt='%Y-%m-%d %H:%M:%S')
+        file_handle = logging.FileHandler(file, encoding='utf-8')
+        file_handle.setFormatter(formatter)
+        self.addHandler(file_handle)
         console_handle = logging.StreamHandler()
         console_handle.setFormatter(formatter)
         self.addHandler(console_handle)
 
 
-logger = MyLog("FastPicBed")
+logger = MyLog('FastPicBed')
 
 # 打包
 # pyinstaller.exe -F main.py -p log_config.py --noconsole
-service_host_ip = "127.0.0.1"
+service_host_ip = '127.0.0.1'
 service_host_port = 30001
 reload = False
-icon = os.path.normpath(os.path.join(os.getcwd(), "static/ico/favicon.ico"))
-db_file = os.path.normpath(os.path.join(os.getcwd(), "fast_pic_bed.db"))
-os.makedirs("saves", exist_ok=True)
-upload_dir = os.path.normpath(os.path.join(os.getcwd(), "saves"))
+icon = os.path.normpath(os.path.join(os.getcwd(), 'static/ico/favicon.ico'))
+db_file = os.path.normpath(os.path.join(os.getcwd(), 'fast_pic_bed.db'))
+os.makedirs('saves', exist_ok=True)
+upload_dir = os.path.normpath(os.path.join(os.getcwd(), 'saves'))
 allowed_extensions = [
-    "txt",
-    "pdf",
-    "png",
-    "jpg",
-    "jpeg",
-    "gif"
+    'txt',
+    'pdf',
+    'png',
+    'jpg',
+    'jpeg',
+    'gif'
 ]
 
-logger.debug(f"service_host_ip: {service_host_ip}")
-logger.debug(f"service_host_port: {service_host_port}")
-logger.debug(f"reload: {reload}")
-logger.debug(f"icon: {icon}")
-logger.debug(f"db_file: {db_file}")
-logger.debug(f"upload_dir: {upload_dir}")
-logger.debug(f"allowed_extensions: {allowed_extensions}")
+logger.debug(f'service_host_ip: {service_host_ip}')
+logger.debug(f'service_host_port: {service_host_port}')
+logger.debug(f'reload: {reload}')
+logger.debug(f'icon: {icon}')
+logger.debug(f'db_file: {db_file}')
+logger.debug(f'upload_dir: {upload_dir}')
+logger.debug(f'allowed_extensions: {allowed_extensions}')
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+app.mount('/static', StaticFiles(directory='static'), name='static')
+templates = Jinja2Templates(directory='templates')
 tray = None
 server = None
 
@@ -71,70 +71,70 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 
-@app.api_route("/", methods=["GET"])
+@app.api_route('/', methods=['GET'])
 async def root(request: Request):
-    pic_num = LiteDB(db_file).counts("pics")
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "pic_num": pic_num,
+    pic_num = LiteDB(db_file).counts('pics')
+    return templates.TemplateResponse('index.html', {
+        'request': request,
+        'pic_num': pic_num,
     })
 
 
-@app.api_route("/", methods=["POST"])
+@app.api_route('/', methods=['POST'])
 async def root(request: Request, file: UploadFile):
-    logger.debug(f"file name: {file.filename}")
-    logger.debug(f"file type: {file.content_type}")
-    pic_num = LiteDB(db_file).counts("pics")
-    if file.filename == "":
-        return templates.TemplateResponse("index.html", {
-            "request": request,
-            "pic_num": pic_num,
-            "message": "文件上传失败",
+    logger.debug(f'File name: {file.filename}')
+    logger.debug(f'File type: {file.content_type}')
+    pic_num = LiteDB(db_file).counts('pics')
+    if file.filename == '':
+        return templates.TemplateResponse('index.html', {
+            'request': request,
+            'pic_num': pic_num,
+            'message': 'File upload failed',
         })
     # if allowed_file(file.filename):
     if True:
         file_name = file.filename
         try:
-            url = str("http://127.0.0.1/uploads/" + file_name)
+            url = str('http://127.0.0.1/uploads/' + file_name)
             file_path = os.path.join(upload_dir, file_name)
             content = await file.read()
-            with open(file_path, "wb") as fp:
+            with open(file_path, 'wb') as fp:
                 fp.write(content)
             LiteDB(db_file).execute(
-                "INSERT INTO pics (filename)"
-                " VALUES (?)",
+                'INSERT INTO pics (filename) VALUES (?)',
                 (file_name,))
-            pic_num = LiteDB(db_file).counts("pics")
-            html_data = templates.TemplateResponse("index.html", {
-                "request": request,
-                "pic_num": pic_num,
-                "message": url,
+            pic_num = LiteDB(db_file).counts('pics')
+            html_data = templates.TemplateResponse('index.html', {
+                'request': request,
+                'pic_num': pic_num,
+                'message': url,
             })
 
             return html_data
         except Exception as e:
             logger.error(e.args)
     else:
-        return templates.TemplateResponse("index.html", {
-            "request": request,
-            "pic_num": pic_num,
-            "message": "文件上传失败",
+        return templates.TemplateResponse('index.html', {
+            'request': request,
+            'pic_num': pic_num,
+            'message': 'File upload failed',
         })
 
 
-@app.api_route("/uploads/{filename}", methods=["GET"])
+@app.api_route('/uploads/{filename}', methods=['GET', 'POST'])
 async def uploaded_file(filename):
-    file_path = os.path.join(os.path.join(os.getcwd(), "saves"), filename)
+    file_path = os.path.join(os.path.join(os.getcwd(), 'saves'), filename)
     if os.path.exists(file_path):
+        logger.debug(f'File: [{file_path}] is exist')
         return FileResponse(path=file_path)
     else:
-        logger.error(f"File: {file_path} is not exist")
+        logger.error(f'File: [{file_path}] is not exist')
         return None
 
 
-@app.api_route("/favicon.ico", methods=["GET"])
+@app.api_route('/favicon.ico', methods=['GET', 'POST'])
 def favicon():
-    return FileResponse("static/ico/favicon.ico")
+    return FileResponse('static/ico/favicon.ico')
 
 
 def singleton(cls):
@@ -189,7 +189,7 @@ class LiteDB:
         if table is None:
             return 0
         else:
-            return self.cu.execute(f"SELECT Count(*) FROM {table}").fetchone()[0]
+            return self.cu.execute(f'SELECT Count(*) FROM {table}').fetchone()[0]
 
 
 class Tray:
@@ -203,13 +203,13 @@ class Tray:
 
     def create_menu(self):
         self.menu = (
-            MenuItem("菜单1", lambda: logger.debug("点击了菜单1")),
-            MenuItem("菜单2", lambda: logger.debug("点击了菜单2")),
-            MenuItem("退出", lambda: self.close())
+            MenuItem('菜单1', lambda: logger.debug('点击了菜单1')),
+            MenuItem('菜单2', lambda: logger.debug('点击了菜单2')),
+            MenuItem('退出', lambda: self.close())
         )
 
     def create_tray(self):
-        self.tray = pystray.Icon("name", self.image, "鼠标移动到\n托盘图标上\n展示内容", self.menu)
+        self.tray = pystray.Icon('name', self.image, '鼠标移动到\n托盘图标上\n展示内容', self.menu)
 
     def run(self):
         self.tray.run()
