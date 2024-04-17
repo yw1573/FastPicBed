@@ -2,19 +2,15 @@ import logging
 import os
 import shutil
 import sqlite3
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-import pystray
 import uvicorn
-from PIL import Image
 from fastapi import FastAPI
 from fastapi import Request
 from fastapi import UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pystray import MenuItem
 
 log_file_path = os.path.join(os.getcwd(), 'log.txt')
 
@@ -125,10 +121,10 @@ async def root(request: Request, file: UploadFile):
 async def uploaded_file(filename):
     file_path = os.path.join(os.path.join(os.getcwd(), 'saves'), filename)
     if os.path.exists(file_path):
-        logger.debug(f'File: [{file_path}] is exist')
+        logger.debug(f'Return: [{file_path}]')
         return FileResponse(path=file_path)
     else:
-        logger.error(f'File: [{file_path}] is not exist')
+        logger.error(f'Not exist: [{file_path}]')
         return None
 
 
@@ -192,45 +188,6 @@ class LiteDB:
             return self.cu.execute(f'SELECT Count(*) FROM {table}').fetchone()[0]
 
 
-class Tray:
-    def __init__(self):
-        self.menu = None
-        self.tray = None
-        ico = icon
-        self.image = Image.open(ico)
-        self.create_menu()
-        self.create_tray()
-
-    def create_menu(self):
-        self.menu = (
-            MenuItem('菜单1', lambda: logger.debug('点击了菜单1')),
-            MenuItem('菜单2', lambda: logger.debug('点击了菜单2')),
-            MenuItem('退出', lambda: self.close())
-        )
-
-    def create_tray(self):
-        self.tray = pystray.Icon('name', self.image, '鼠标移动到\n托盘图标上\n展示内容', self.menu)
-
-    def run(self):
-        self.tray.run()
-
-    def close(self):
-        self.tray.stop()
-
-
-def create_tray():
-    my_tray = Tray()
-    my_tray.run()
-
-
-def create_server():
-    my_config = uvicorn.Config(app=f'{Path(__file__).stem}:app', host=service_host_ip, port=int(service_host_port),
-                               access_log=False,
-                               workers=16)
-    my_server = uvicorn.Server(my_config)
-    my_server.run()
-
-
 def init_db():
     if os.path.isfile(db_file):
         os.remove(db_file)
@@ -247,14 +204,15 @@ def init_db():
     db.execute(sql)
 
 
-def thread_management():
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        executor.submit(create_tray)
-        executor.submit(create_server)
-
-
 if __name__ == '__main__':
     if reload:
         # 这里是清除数据库，清除saves文件夹
         init_db()
-    thread_management()
+    my_config = uvicorn.Config(app=f'{Path(__file__).stem}:app',
+                               host=service_host_ip,
+                               port=int(service_host_port),
+                               access_log=False,
+                               reload=False,
+                               workers=4)
+    my_server = uvicorn.Server(my_config)
+    my_server.run()
