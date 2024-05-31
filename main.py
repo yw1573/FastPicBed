@@ -1,7 +1,6 @@
 import logging
+import math
 import os
-import shutil
-import sqlite3
 from pathlib import Path
 
 import uvicorn
@@ -11,6 +10,9 @@ from fastapi import UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.responses import HTMLResponse
+
+from db import LiteDB
 
 log_file_path = os.path.join(os.getcwd(), 'log.txt')
 
@@ -30,10 +32,9 @@ class MyLog(logging.Logger):
 
 logger = MyLog('FastPicBed')
 
-# 打包
-# pyinstaller.exe -F main.py -p log_config.py --noconsole
 service_host_ip = '127.0.0.1'
-service_host_port = 30001
+# service_host_port = 30001
+service_host_port = 30002
 reload = False
 icon = os.path.normpath(os.path.join(os.getcwd(), 'static/ico/favicon.ico'))
 db_file = os.path.normpath(os.path.join(os.getcwd(), 'fast_pic_bed.db'))
@@ -109,12 +110,12 @@ async def root(request: Request, file: UploadFile):
             return html_data
         except Exception as e:
             logger.error(e.args)
-    else:
-        return templates.TemplateResponse('index.html', {
-            'request': request,
-            'pic_num': pic_num,
-            'message': 'File upload failed',
-        })
+    # else:
+    #     return templates.TemplateResponse('index.html', {
+    #         'request': request,
+    #         'pic_num': pic_num,
+    #         'message': 'File upload failed',
+    #     })
 
 
 @app.api_route('/uploads/{filename}', methods=['GET', 'POST'])
@@ -133,86 +134,26 @@ def favicon():
     return FileResponse('static/ico/favicon.ico')
 
 
-def singleton(cls):
-    _instance = {}
-
-    def inner(*args, **kwargs):
-        if cls not in _instance:
-            _instance[cls] = cls(*args, **kwargs)
-        return _instance[cls]
-
-    return inner
-
-
-@singleton
-class LiteDB:
-    def __init__(self, filename):
-        self.filename = filename
-        self.db = sqlite3.connect(self.filename)
-        self.cu = self.db.cursor()
-
-    def close(self):
-        self.cu.close()
-        self.db.close()
-
-    def execute(self, sql, values=None):
-        try:
-            if values is None:
-                self.cu.execute(sql)
-            else:
-                if type(values) is list:
-                    self.cu.executemany(sql, values)
-                else:
-                    self.cu.execute(sql, values)
-            count = self.db.total_changes
-            self.db.commit()
-        except Exception as e:
-            logger.error(e)
-            return False, e
-        if count > 0:
-            return True
-        else:
-            return False
-
-    def query(self, sql, values=None):
-        if values is None:
-            self.cu.execute(sql)
-        else:
-            self.cu.execute(sql, values)
-        return self.cu.fetchall()
-
-    def counts(self, table):
-        if table is None:
-            return 0
-        else:
-            return self.cu.execute(f'SELECT Count(*) FROM {table}').fetchone()[0]
-
-
-def init_db():
-    if os.path.isfile(db_file):
-        os.remove(db_file)
-    shutil.rmtree(upload_dir)
-    os.makedirs(upload_dir, exist_ok=True)
-    db = LiteDB(db_file)
-    sql = '''
-    CREATE TABLE pics(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT UNIQUE NOT NULL,
-        created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-    '''
-    db.execute(sql)
+@app.api_route('/file_view/{page}', response_class=HTMLResponse, methods=['GET', 'POST'])
+async def file_view(request: Request, page: int):
+    page = max(1, page)
+    data, total = LiteDB(db_file).get_paginated_data(page, 'pics', page_size=50)
+    total_pages = math.ceil(total / 50)
+    return templates.TemplateResponse("file_view.html",
+                                      {
+                                          "request": request,
+                                          "data": data,
+                                          "total_pages": total_pages,
+                                          "current_page": page
+                                      })
 
 
 if __name__ == '__main__':
-    if reload:
-        # 这里是清除数据库，清除saves文件夹
-        init_db()
     my_config = uvicorn.Config(app=f'{Path(__file__).stem}:app',
                                host=service_host_ip,
                                port=int(service_host_port),
-                               access_log=False,
-                               reload=False,
+                               access_log=True,
+                               reload=True,
                                workers=4)
     my_server = uvicorn.Server(my_config)
     my_server.run()

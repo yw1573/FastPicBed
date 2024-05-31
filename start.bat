@@ -1,3 +1,3 @@
 @echo off
-call .venv\Scripts\activate
+call venv\Scripts\activate
 start /B python main.py

@@ -33,7 +33,6 @@
             </div>
           </li>
         </ul>
-        
       </div>
     </nav>
     <div class="container mt-2">
@@ -61,10 +60,10 @@
             <br>
             <div class="row justify-content-center">
               <div class="col-auto">
-              <h6 class="text-center">当前图床中有{{pic_num}}张图片</h6>
+              <h6 class="text-center">当前图床中有{{ pic_num }}张图片</h6>
                 {% if message %}
                 <h6 class="text-center">您刚刚上传的文件是</h6>
-                <a href="{{message}}" target="_blank">{{message}}</a>
+                <a href="{{message}}" target="_blank">{{ message }}</a>
                 <br>
                 {% endif %}
               </div>
