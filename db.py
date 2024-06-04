@@ -1,5 +1,6 @@
 import sqlite3
 
+
 def singleton(cls):
     _instance = {}
 
@@ -33,7 +34,6 @@ class LiteDB:
             count = self.conn.total_changes
             self.conn.commit()
         except Exception as e:
-            logger.error(e)
             return False, e
         if count > 0:
             return True
@@ -44,13 +44,12 @@ class LiteDB:
         if table is None:
             return 0
         else:
-            return self.conn.execute(f'SELECT Count(*) FROM {table}').fetchone()[0]
+            return self.conn.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0]
 
     def get_paginated_data(self, page: int, table: str, page_size: int = 100):
         offset = (page - 1) * page_size
         data = self.conn.execute(f'SELECT * FROM {table} LIMIT {page_size} OFFSET {offset}').fetchall()
-        total = self.counts(table)
-        return data, total
+        return data
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()

@@ -8,19 +8,66 @@
     <link href="{{ url_for('static', path='css/bootstrap.css') }}" rel="stylesheet">
     <link rel="shortcut icon" href="{{ url_for('static', path='favicon.ico') }}" type="image/x-icon">
     <style>
-        table {
-          border-collapse: collapse;
-          width: 100%;
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-gap: 20px;
+            justify-items: center;
         }
-
-        th, td {
-          border: 1px solid black;
-          padding: 8px;
-          text-align: left;
+        .image-container {
+            width: 100%;
+            height: 0;
+            padding-bottom: 100%;
+            position: relative;
         }
-
-        th {
-          background-color: #f2f2f2;
+        .image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .modal {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+        }
+        .modal-image {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .pagination a {
+            padding: 5px 10px;
+            background-color: #333;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .close-button {
+            position: absolute;
+            top: 10px; /* 距离模态框顶部的距离 */
+            right: 10px; /* 距离模态框右侧的距离 */
+            z-index: 10000; /* 确保按钮在图片之上 */
+            background-color: #fff; /* 按钮背景色 */
+            border: none; /* 无边框 */
+            border-radius: 5px; /* 圆角边框 */
+            padding: 5px 10px; /* 内边距 */
+            cursor: pointer; /* 鼠标悬停时的指针形状 */
         }
     </style>
 </head>
@@ -33,28 +80,21 @@
     </button>
 </nav>
 <div class="container mt-2">
-    <div class="row">
-        <div class="col-12">
-            <table>
-                <tr>
-                    <th>序号</th>
-                    <th>文件名称</th>
-                    <th>上传时间</th>
-                </tr>
-                {% for item in data %}
-                <tr>
-                    <td>{{ item.id }}</td>
-                    <td>{{ item.filename }}</td>
-                    <td>{{ item.created }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-            <div>
-                {% for page in range(1, total_pages + 1) %}
-                <a href="{{ url_for('file_view', page=page) }}">{{ page }}</a>
-                {% endfor %}
-            </div>
+    <div class="col-12">
+        <div class="pagination">
+            {% if page > 1 %}
+            <a href="/file_view?page={{ page - 1 }}">上一页</a>
+            {% endif %}
+            <a href="/file_view?page={{ page + 1 }}">下一页</a>
         </div>
+        <div class="image-grid">
+            {% for image in images %}
+            <div class="image-container" onclick="showModal('{{ image.url }}')">
+                <img src="{{ image.url }}" alt="Image" , class="image">
+            </div>
+            {% endfor %}
+        </div>
+
     </div>
 </div>
 </body>
@@ -63,9 +103,43 @@
 <script src="../static/js/popper.min.js"></script>
 <script src="../static/js/bootstrap.js"></script>
 <script>
-    function getFile(){
-      $("#getF").click();
+    function showModal(imageUrl) {
+
+        // 创建关闭按钮元素
+        var closeButton = document.createElement('button');
+        closeButton.innerHTML = 'X';
+        closeButton.classList.add('close-button');
+        closeButton.addEventListener('click', function() {
+            // 移除模态框元素
+            modal.remove();
+        });
+
+        // 创建模态框元素
+        var modal = document.createElement('div');
+        modal.classList.add('modal');
+
+        // 创建图片元素
+        var image = document.createElement('img');
+        image.src = imageUrl;
+        image.alt = 'Full Image';
+        image.classList.add('modal-image');
+
+        // 将关闭按钮和图片添加到模态框中
+        modal.appendChild(closeButton);
+        modal.appendChild(image);
+
+        // 将模态框添加到页面中
+        document.body.appendChild(modal);
+
+        // 添加键盘事件监听器
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                // 按下"Esc"键时，移除模态框元素
+                modal.remove();
+            }
+        });
     }
+
 </script>
 
 </html>
