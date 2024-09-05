@@ -48,7 +48,7 @@ class LiteDB:
 
     def get_paginated_data(self, page: int, table: str, page_size: int = 100):
         offset = (page - 1) * page_size
-        data = self.conn.execute(f'SELECT * FROM {table} LIMIT {page_size} OFFSET {offset}').fetchall()
+        data = self.conn.execute(f'SELECT * FROM {table} ORDER BY id DESC LIMIT {page_size} OFFSET {offset}').fetchall()
         return data
 
     def __exit__(self, exc_type, exc_val, exc_tb):
