@@ -30,7 +30,7 @@ class MyLog(logging.Logger):
 logger = MyLog('FastPicBed')
 
 IP = '127.0.0.1'
-PORT = 30001
+PORT = 50001
 ICON_FILE = os.path.normpath(os.path.join(os.getcwd(), 'static/ico/favicon.ico'))
 DB_FILE = os.path.normpath(os.path.join(os.getcwd(), 'fast_pic_bed.db'))
 os.makedirs('saves', exist_ok=True)
@@ -81,8 +81,8 @@ async def root(request: Request, file: UploadFile):
             'pic_num': pic_num,
             'message': 'File upload failed',
         })
-    # if allowed_file(file.filename):
-    if True:
+    if allowed_file(file.filename):
+        # if True:
         file_name = file.filename
         try:
             url = str('http://127.0.0.1/uploads/' + file_name)
@@ -115,11 +115,33 @@ async def uploaded_file(filename):
         return None
 
 
+@app.api_route('/uploads/{filename}', methods=['DELETE'])
+async def uploaded_file(filename):
+    file_path = os.path.join(os.path.join(os.getcwd(), 'saves'), filename)
+    sql = f'DELETE FROM pics WHERE filename="{filename}";'
+    logger.debug(f'delete sql: {sql}')
+    LiteDB(DB_FILE).execute(sql)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return {"errcore": 200,
+                "message": "删除成功"}
+    else:
+        logger.error(f'Not exist: [{file_path}]')
+
+        return {"errcore": 200,
+                "message": "文件不存在"}
+
+
 @app.get('/file_view')
 async def file_view(request: Request, page: int = 1):
     page = max(1, page)
-    data = LiteDB(DB_FILE).get_paginated_data(page, 'pics', page_size=20)
+    page_size = 40
+    data = LiteDB(DB_FILE).get_paginated_data(page, 'pics', page_size=page_size)
     images = []
+    if len(data) < page_size:
+        has_next = False
+    else:
+        has_next = True
     for row in data:
         id = row[0]
         filename = row[1]
@@ -136,7 +158,9 @@ async def file_view(request: Request, page: int = 1):
                                       {
                                           "request": request,
                                           "images": images,
-                                          "page": page
+                                          "page": page,
+                                          "has_next": has_next
+
                                       })
 
 

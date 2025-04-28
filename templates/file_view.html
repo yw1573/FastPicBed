@@ -10,7 +10,7 @@
     <style>
         .image-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(10, 1fr);
             grid-gap: 20px;
             justify-items: center;
         }
@@ -69,6 +69,17 @@
             padding: 5px 10px; /* 内边距 */
             cursor: pointer; /* 鼠标悬停时的指针形状 */
         }
+        .delete-button {
+            position: absolute;
+            bottom: 10px; /* 距离模态框顶部的距离 */
+            right: 10px; /* 距离模态框右侧的距离 */
+            z-index: 10000; /* 确保按钮在图片之上 */
+            background-color: #fff; /* 按钮背景色 */
+            border: none; /* 无边框 */
+            border-radius: 5px; /* 圆角边框 */
+            padding: 5px 10px; /* 内边距 */
+            cursor: pointer; /* 鼠标悬停时的指针形状 */
+        }
     </style>
 </head>
 <body>
@@ -101,13 +112,30 @@
     </div>
 </nav>
 <div class="container mt-2">
-    <div class="col-12">
-        <div class="pagination">
-            {% if page > 1 %}
-            <a href="/file_view?page={{ page - 1 }}">上一页</a>
-            {% endif %}
-            <a href="/file_view?page={{ page + 1 }}">下一页</a>
-        </div>
+    <div class="container mt-2">
+        <nav aria-label="图片分页">
+            <ul class="pagination justify-content-center my-4">
+                {% if page > 1 %}
+                <!--            <a href="/file_view?page={{ page - 1 }}">上一页</a>-->
+                <li class="page-item">
+                    <a class="page-link" href="/file_view?page={{ page - 1 }}" aria-label="上一页">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+                <!--            <a href="/file_view?page={{ page + 1 }}">下一页</a>-->
+                <li class="page-item active">
+                    <span class="page-link">{{ page }}</span>
+                </li>
+                {% if has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="/file_view?page={{ page + 1 }}" aria-label="下一页">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
         <div class="image-grid">
             {% for image in images %}
             <div class="image-container" onclick="showModal('{{ image.url }}')">
@@ -128,11 +156,31 @@
 
         // 创建关闭按钮元素
         var closeButton = document.createElement('button');
-        closeButton.innerHTML = 'X';
+        closeButton.innerHTML = '取消';
         closeButton.classList.add('close-button');
         closeButton.addEventListener('click', function() {
             // 移除模态框元素
             modal.remove();
+        });
+
+        var deleteButton = document.createElement('button');
+        deleteButton.innerHTML = '删除';
+        deleteButton.classList.add('delete-button');
+        deleteButton.addEventListener('click', function() {
+            var url = imageUrl
+            var xhr = new XMLHttpRequest();
+            xhr.open("DELETE", url, true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    console.log("删除成功！");
+                } else {
+                    console.log("无法删除数据。");
+                }
+                // 移除模态框元素
+                modal.remove();
+                location.reload();
+            };
+            xhr.send();
         });
 
         // 创建模态框元素
@@ -147,6 +195,7 @@
 
         // 将关闭按钮和图片添加到模态框中
         modal.appendChild(closeButton);
+        modal.appendChild(deleteButton);
         modal.appendChild(image);
 
         // 将模态框添加到页面中
